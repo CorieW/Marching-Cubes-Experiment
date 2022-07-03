@@ -1,0 +1,14 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public static class Vector2IntExtension
+{
+    public static bool Within(this Vector2Int pos, Vector2Int a, Vector2Int b)
+    {
+        if (pos.x < a.x || pos.y < a.y || pos.z < a.z) return false;
+        if (pos.x > b.x || pos.y > b.y || pos.z > b.z) return false;
+
+        return true;
+    }
+}

@@ -25,22 +25,23 @@ public class MeshGenerator : MonoBehaviour
         List<int> order = new List<int>();
 
         TerrainVertexPoint[,,] grid = chunk.Grid;
+        // Debug.Log(chunk.Detail + " = " + grid.GetLength(0) + ", " + grid.GetLength(1) + ", " + grid.GetLength(2));
 
-        for (int x = 0, i = 0; x < grid.GetLength(0) - Global.STITCH_VERTICES; x++)
+        for (int x = 0, i = 0; x < grid.GetLength(0) - 1; x++)
         {
-            for (int y = 0; y < grid.GetLength(1) - Global.STITCH_VERTICES; y++)
+            for (int y = 0; y < grid.GetLength(1) - 1; y++)
             {
-                for (int z = 0; z < grid.GetLength(2) - Global.STITCH_VERTICES; z++, i++)
+                for (int z = 0; z < grid.GetLength(2) - 1; z++, i++)
                 {
                     Vector3[] corners = new Vector3[] {
-                        new Vector3(0, 0, 0),
-                        new Vector3(1, 0, 0),
-                        new Vector3(1, 0, 1),
-                        new Vector3(0, 0, 1),
-                        new Vector3(0, 1, 0),
-                        new Vector3(1, 1, 0),
-                        new Vector3(1, 1, 1),
-                        new Vector3(0, 1, 1)
+                        new Vector3(0 / chunk.Detail, 0 / chunk.Detail, 0 / chunk.Detail),
+                        new Vector3(1 / chunk.Detail, 0 / chunk.Detail, 0 / chunk.Detail),
+                        new Vector3(1 / chunk.Detail, 0 / chunk.Detail, 1 / chunk.Detail),
+                        new Vector3(0 / chunk.Detail, 0 / chunk.Detail, 1 / chunk.Detail),
+                        new Vector3(0 / chunk.Detail, 1 / chunk.Detail, 0 / chunk.Detail),
+                        new Vector3(1 / chunk.Detail, 1 / chunk.Detail, 0 / chunk.Detail),
+                        new Vector3(1 / chunk.Detail, 1 / chunk.Detail, 1 / chunk.Detail),
+                        new Vector3(0 / chunk.Detail, 1 / chunk.Detail, 1 / chunk.Detail)
                     };
 
                     double[] values = new double[] {
@@ -70,7 +71,7 @@ public class MeshGenerator : MonoBehaviour
                         {
                             vertexIndex = vertices.Count;
                             posStringToVertexIndexDict.Add(totalPos.ToString(), vertexIndex);
-                            vertices.Add(vec3 + new Vector3(x, y, z));
+                            vertices.Add(vec3 + new Vector3(x / chunk.Detail, y / chunk.Detail, z / chunk.Detail));
                         }
                         order.Add(vertexIndex);
                     }

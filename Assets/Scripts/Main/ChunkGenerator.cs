@@ -18,30 +18,37 @@ public class ChunkGenerator : MonoBehaviour
     {
         // A mesh always needs to have +1 vertices to match the same intended size.
         TerrainVertexPoint[,,] grid = new TerrainVertexPoint[
-            Global.CHUNK_WIDTH + 1 + Global.STITCH_VERTICES, 
-            Global.CHUNK_HEIGHT + 1 + Global.STITCH_VERTICES, 
-            Global.CHUNK_LENGTH + 1 + Global.STITCH_VERTICES
+            (int)(Global.CHUNK_WIDTH * detail) + 1 + Global.STITCH_VERTICES, 
+            (int)(Global.CHUNK_HEIGHT * detail) + 1 + Global.STITCH_VERTICES,
+            (int)(Global.CHUNK_LENGTH * detail) + 1 + Global.STITCH_VERTICES
         ];
-        double[,] heightMap = GenerateHeightMap(chunkPos, detail);
+        // double[,] heightMap = GenerateHeightMap(chunkPos, detail);
 
         for (int z = 0; z < grid.GetLength(2); z++)
         {
             for (int x = 0; x < grid.GetLength(0); x++)
             {
-                double noise = _noise.Evaluate((double)((chunkPos.x * Global.CHUNK_WIDTH) + x) / NOISE_SCALE, (double)((chunkPos.z * Global.CHUNK_LENGTH) + z) / NOISE_SCALE);
-                double heightValue = (noise * 100) + 1001;
+                int dX = (int)(x / detail);
+                int dZ = (int)(z / detail);
 
-                for (int y = 0; y < grid.GetLength(1); y++)
+                double noise = _noise.Evaluate((double)((chunkPos.x * Global.CHUNK_WIDTH) + dX) / NOISE_SCALE, (double)((chunkPos.z * Global.CHUNK_LENGTH) + dZ) / NOISE_SCALE);
+                double heightValue = (noise * 100) + 101;
+                int y = (int)heightValue;
+
+                for (int n = -1; n <= 1; n++)
                 {
-                    Vector3Int currPos = (chunkPos * new Vector3Int(Global.CHUNK_WIDTH, Global.CHUNK_HEIGHT, Global.CHUNK_LENGTH)) + new Vector3Int(x, y, z);
+                    // Coordinates including detail calculations.
+                    // int dY = (int)(y / detail);
+
+                    // Vector3Int currPos = (chunkPos * new Vector3Int(Global.CHUNK_WIDTH, Global.CHUNK_HEIGHT, Global.CHUNK_LENGTH)) + new Vector3Int(dX, dY, dZ);
                     // Calculate the slope
-                    double edgeValue = Mathf.Clamp((float)heightValue - currPos.y, -1, 1);
-                    grid[x, y, z] = new TerrainVertexPoint(edgeValue, 1);
+                    double edgeValue = Mathf.Clamp((float)heightValue - (y + n), -1, 1);
+                    grid[x, (int)((y + n) * detail), z] = new TerrainVertexPoint(edgeValue, 1);
 
                     // if (currPos.y > heightValue) grid[x, y, z] = new TerrainVertexPoint(-1, 0);
                     // else if (currPos.y <= Mathf.FloorToInt((float)heightValue)) grid[x, y, z] = new TerrainVertexPoint(heightValue - currPos.y, 1);
                     // if (Mathf.Floor((float)heightValue) - currPos.y == 0) Debug.Log(heightValue - currPos.y);
-                    // double edgeVal = _noise.Evaluate(((((double)chunkPos.x * (Global.CHUNK_WIDTH)) + x)) / 5, ((((double)chunkPos.y * (Global.CHUNK_HEIGHT)) + y)) / 5, ((((double)chunkPos.z * (Global.CHUNK_LENGTH)) + z)) / 5);
+                    // double edgeVal = _noise.Evaluate(((((double)chunkPos.x * (Global.CHUNK_WIDTH)) + dX)) / 5, ((((double)chunkPos.y * (Global.CHUNK_HEIGHT)) + dY)) / 5, ((((double)chunkPos.z * (Global.CHUNK_LENGTH)) + dZ)) / 5);
                     // grid[x, y, z] = new TerrainVertexPoint(edgeVal, 0);
                 }
             }

@@ -23,29 +23,26 @@ public class ChunkLoader : MonoBehaviour
         RangeDetails rangeDetails = GameController.Instance.GetSettings().GetRenderingSettings().rangeDetails;
         int maxRange = rangeDetails.GetMaxRange();
         
-        for (int y = -maxRange; y <= maxRange; y++)
+        for (int z = -maxRange; z <= maxRange; z++)
         {
-            for (int z = -maxRange; z <= maxRange; z++)
+            for (int x = -maxRange; x <= maxRange; x++)
             {
-                for (int x = -maxRange; x <= maxRange; x++)
+                Vector3Int totalPrevChunkPos = _prevChunkPos + new Vector3Int(x, 0, z);
+                Vector3Int totalCurrentChunkPos = currentChunkPos + new Vector3Int(x, 0, z);
+                
+                // Get distance between current chunkloader chunk pos and the previous chunk position.
+                float currRange = Vector3Int.Distance(currentChunkPos, totalPrevChunkPos);
+                float currDetail = rangeDetails.GetDetailAtRange(currRange);
+
+                float existingChunkDetail = 0;
+                if (_chunkPosToDetailDict.TryGetValue(totalPrevChunkPos, out existingChunkDetail))
                 {
-                    Vector3Int totalPrevChunkPos = _prevChunkPos + new Vector3Int(x, y, z);
-                    Vector3Int totalCurrentChunkPos = currentChunkPos + new Vector3Int(x, y, z);
-                    
-                    // Get distance between current chunkloader chunk pos and the previous chunk position.
-                    float currRange = Vector3Int.Distance(currentChunkPos, totalPrevChunkPos);
-                    float currDetail = rangeDetails.GetDetailAtRange(currRange);
+                    // Chunk's detail doesn't need to change, so this chunk can stay loaded. Continue to next chunk.
+                    if (existingChunkDetail == currDetail) continue;
 
-                    float existingChunkDetail = 0;
-                    if (_chunkPosToDetailDict.TryGetValue(totalPrevChunkPos, out existingChunkDetail))
-                    {
-                        // Chunk's detail doesn't need to change, so this chunk can stay loaded. Continue to next chunk.
-                        if (existingChunkDetail == currDetail) continue;
-
-                        // Unload chunk.
-                        World.Instance.UnloadChunk(totalPrevChunkPos);
-                        _chunkPosToDetailDict.Remove(totalPrevChunkPos);
-                    }
+                    // Unload chunk.
+                    World.Instance.UnloadChunk(totalPrevChunkPos);
+                    _chunkPosToDetailDict.Remove(totalPrevChunkPos);
                 }
             }
         }
@@ -56,29 +53,26 @@ public class ChunkLoader : MonoBehaviour
         RangeDetails rangeDetails = GameController.Instance.GetSettings().GetRenderingSettings().rangeDetails;
         int maxRange = rangeDetails.GetMaxRange();
         
-        for (int y = -maxRange; y <= maxRange; y++)
+        for (int z = -maxRange; z <= maxRange; z++)
         {
-            for (int z = -maxRange; z <= maxRange; z++)
+            for (int x = -maxRange; x <= maxRange; x++)
             {
-                for (int x = -maxRange; x <= maxRange; x++)
+                Vector3Int totalChunkPos = currentChunkPos + new Vector3Int(x, 0, z);
+
+                float currRange = Vector3Int.Distance(Vector3Int.zero, new Vector3Int(x, 0, z));
+                float currDetail = rangeDetails.GetDetailAtRange(currRange);
+
+                // If out of range, continue to next chunk position.
+                if (currRange > maxRange) continue;
+
+                float existingChunkDetail = 0;
+                if (_chunkPosToDetailDict.TryGetValue(totalChunkPos, out existingChunkDetail))
                 {
-                    Vector3Int totalChunkPos = currentChunkPos + new Vector3Int(x, y, z);
-
-                    float currRange = Vector3Int.Distance(Vector3Int.zero, new Vector3Int(x, y, z));
-                    float currDetail = rangeDetails.GetDetailAtRange(currRange);
-
-                    // If out of range, continue to next chunk position.
-                    if (currRange > maxRange) continue;
-
-                    float existingChunkDetail = 0;
-                    if (_chunkPosToDetailDict.TryGetValue(totalChunkPos, out existingChunkDetail))
-                    {
-                        // Nothing needs to happen with this chunk, so just continue.
-                        if (existingChunkDetail == currDetail) continue;
-                    }
-
-                    LoadNewChunk(totalChunkPos, currDetail);
+                    // Nothing needs to happen with this chunk, so just continue.
+                    if (existingChunkDetail == currDetail) continue;
                 }
+
+                LoadNewChunk(totalChunkPos, currDetail);
             }
         }
 
