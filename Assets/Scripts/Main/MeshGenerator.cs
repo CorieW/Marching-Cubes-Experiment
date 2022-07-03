@@ -5,6 +5,8 @@ public class MeshGenerator : MonoBehaviour
 {
     public static MeshGenerator Instance;
 
+    [SerializeField] private Material _terrainMaterial;
+
     private void Awake()
     {
         Instance = this;
@@ -13,8 +15,9 @@ public class MeshGenerator : MonoBehaviour
     public GameObject GenerateNewChunkMesh(Chunk chunk)
     {
         GameObject newMeshObject = new GameObject($"Chunk ({chunk.ChunkPos.x}, {chunk.ChunkPos.y}, {chunk.ChunkPos.z})");
-        newMeshObject.transform.position = chunk.ChunkPos * new Vector3Int(Global.CHUNK_WIDTH - 1, Global.CHUNK_HEIGHT - 1, Global.CHUNK_LENGTH - 1);
+        newMeshObject.transform.position = chunk.ChunkPos * new Vector3Int(Global.CHUNK_WIDTH, Global.CHUNK_HEIGHT, Global.CHUNK_LENGTH);
         MeshRenderer mr = newMeshObject.AddComponent<MeshRenderer>();
+        mr.material = _terrainMaterial;
         MeshFilter mf = newMeshObject.AddComponent<MeshFilter>();
 
         List<Vector3> vertices = new List<Vector3>();
@@ -23,11 +26,11 @@ public class MeshGenerator : MonoBehaviour
 
         TerrainVertexPoint[,,] grid = chunk.Grid;
 
-        for (int x = 0, i = 0; x < grid.GetLength(0) - 1; x++)
+        for (int x = 0, i = 0; x < grid.GetLength(0) - Global.STITCH_VERTICES; x++)
         {
-            for (int y = 0; y < grid.GetLength(1) - 1; y++)
+            for (int y = 0; y < grid.GetLength(1) - Global.STITCH_VERTICES; y++)
             {
-                for (int z = 0; z < grid.GetLength(2) - 1; z++, i++)
+                for (int z = 0; z < grid.GetLength(2) - Global.STITCH_VERTICES; z++, i++)
                 {
                     Vector3[] corners = new Vector3[] {
                         new Vector3(0, 0, 0),
@@ -83,10 +86,11 @@ public class MeshGenerator : MonoBehaviour
         }
 
         Mesh mesh = mf.mesh = new Mesh();
-        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        // mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         mesh.vertices = vertices.ToArray();
         mesh.triangles = triangles;
         mesh.RecalculateNormals();
+        
         return newMeshObject;
     }
 

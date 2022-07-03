@@ -4,11 +4,7 @@ using UnityEngine;
 /// <summary>Used for loading chunks around the object it's attached to.</summary>
 public class ChunkLoader : MonoBehaviour
 {
-    [SerializeField] private RangeDetails _rangeDetails;
-
     private Vector3Int _prevChunkPos = new Vector3Int(-1, -1, -1);
-    private List<Chunk> _loadedChunks = new List<Chunk>();
-    // TODO: Implement
     private Dictionary<Vector3Int, float> _chunkPosToDetailDict = new Dictionary<Vector3Int, float>();
 
     private void Update()
@@ -16,15 +12,16 @@ public class ChunkLoader : MonoBehaviour
         Vector3Int currentChunkPos = GetCurrentChunkPos();
         if (_prevChunkPos != currentChunkPos) 
         {
-            UnloadOldChunks();
-            LoadNewlyVisibleChunk();
+            UnloadOldChunks(currentChunkPos);
+            LoadNewlyVisibleChunk(currentChunkPos);
         }
     }
 
-    private void LoadNewlyVisibleChunk()
+    // ! Has some issues with variable naming. Not clear of intention.
+    private void UnloadOldChunks(Vector3Int currentChunkPos)
     {
-        Vector3Int currentChunkPos = GetCurrentChunkPos();
-        int maxRange = _rangeDetails.GetMaxRange();
+        RangeDetails rangeDetails = GameController.Instance.GetSettings().GetRenderingSettings().rangeDetails;
+        int maxRange = rangeDetails.GetMaxRange();
         
         for (int y = -maxRange; y <= maxRange; y++)
         {
@@ -32,14 +29,55 @@ public class ChunkLoader : MonoBehaviour
             {
                 for (int x = -maxRange; x <= maxRange; x++)
                 {
+                    Vector3Int totalPrevChunkPos = _prevChunkPos + new Vector3Int(x, y, z);
+                    Vector3Int totalCurrentChunkPos = currentChunkPos + new Vector3Int(x, y, z);
+                    
+                    // Get distance between current chunkloader chunk pos and the previous chunk position.
+                    float currRange = Vector3Int.Distance(currentChunkPos, totalPrevChunkPos);
+                    float currDetail = rangeDetails.GetDetailAtRange(currRange);
+
+                    float existingChunkDetail = 0;
+                    if (_chunkPosToDetailDict.TryGetValue(totalPrevChunkPos, out existingChunkDetail))
+                    {
+                        // Chunk's detail doesn't need to change, so this chunk can stay loaded. Continue to next chunk.
+                        if (existingChunkDetail == currDetail) continue;
+
+                        // Unload chunk.
+                        World.Instance.UnloadChunk(totalPrevChunkPos);
+                        _chunkPosToDetailDict.Remove(totalPrevChunkPos);
+                    }
+                }
+            }
+        }
+    }
+
+    private void LoadNewlyVisibleChunk(Vector3Int currentChunkPos)
+    {
+        RangeDetails rangeDetails = GameController.Instance.GetSettings().GetRenderingSettings().rangeDetails;
+        int maxRange = rangeDetails.GetMaxRange();
+        
+        for (int y = -maxRange; y <= maxRange; y++)
+        {
+            for (int z = -maxRange; z <= maxRange; z++)
+            {
+                for (int x = -maxRange; x <= maxRange; x++)
+                {
+                    Vector3Int totalChunkPos = currentChunkPos + new Vector3Int(x, y, z);
+
                     float currRange = Vector3Int.Distance(Vector3Int.zero, new Vector3Int(x, y, z));
-                    float currDetail = _rangeDetails.GetDetailAtRange(currRange);
+                    float currDetail = rangeDetails.GetDetailAtRange(currRange);
 
                     // If out of range, continue to next chunk position.
-                    if (currRange >= maxRange) continue;
+                    if (currRange > maxRange) continue;
 
-                    Vector3Int chunkPos = currentChunkPos + new Vector3Int(x, y, z);
-                    LoadNewChunk(chunkPos, currDetail);
+                    float existingChunkDetail = 0;
+                    if (_chunkPosToDetailDict.TryGetValue(totalChunkPos, out existingChunkDetail))
+                    {
+                        // Nothing needs to happen with this chunk, so just continue.
+                        if (existingChunkDetail == currDetail) continue;
+                    }
+
+                    LoadNewChunk(totalChunkPos, currDetail);
                 }
             }
         }
@@ -49,29 +87,8 @@ public class ChunkLoader : MonoBehaviour
 
     private void LoadNewChunk(Vector3Int chunkPos, float detail)
     {
-        Chunk chunk = ChunkGenerator.Instance.GenerateChunk(chunkPos, detail);
-        if (chunk == null) return;
-
-        chunk.AssociatedMeshObject = MeshGenerator.Instance.GenerateNewChunkMesh(chunk);
-        _loadedChunks.Add(chunk);
-    }
-
-    private void UnloadOldChunks()
-    {
-        Vector3Int currentChunkPos = GetCurrentChunkPos();
-        int maxRange = _rangeDetails.GetMaxRange();
-
-        for (int i = 0; i < _loadedChunks.Count; i++)
-        {
-            Chunk loadedChunk = _loadedChunks[i];
-
-            if (Vector3Int.Distance(currentChunkPos, loadedChunk.ChunkPos) >= maxRange)
-            {
-                Destroy(loadedChunk.AssociatedMeshObject);
-                _loadedChunks.RemoveAt(i);
-                i -= 1;
-            }
-        }
+        World.Instance.LoadChunk(chunkPos, detail);
+        _chunkPosToDetailDict.Add(chunkPos, detail);
     }
 
     private Vector3Int GetCurrentChunkPos()
@@ -85,9 +102,9 @@ public class ChunkLoader : MonoBehaviour
 
         // * Apparently casting to int is faster than Mathf.FloorToInt
         return new Vector3Int(
-            (int)nonWholeChunkPos.x,
-            (int)nonWholeChunkPos.y,
-            (int)nonWholeChunkPos.z
+            Mathf.RoundToInt(nonWholeChunkPos.x),
+            Mathf.RoundToInt(nonWholeChunkPos.y),
+            Mathf.RoundToInt(nonWholeChunkPos.z)
         );
     }
 }
